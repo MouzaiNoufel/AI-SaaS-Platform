@@ -4,7 +4,7 @@ A **complete, production-ready AI Software-as-a-Service (SaaS) web platform** bu
 
 ![Platform Preview](./docs/preview.png)
 
-## 🚀 Features
+##  Features
 
 ### Core Features
 - **AI Tool Catalog**: Multiple AI-powered tools for text generation, code assistance, translation, summarization, and more
@@ -37,7 +37,7 @@ A **complete, production-ready AI Software-as-a-Service (SaaS) web platform** bu
 - Audit logs and system logs
 - Contact message management
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Category | Technology |
 |----------|------------|
@@ -52,7 +52,7 @@ A **complete, production-ready AI Software-as-a-Service (SaaS) web platform** bu
 | **State** | React Context API |
 | **AI Integration** | OpenAI API |
 
-## 📦 Prerequisites
+##  Prerequisites
 
 Before you begin, ensure you have the following installed:
 
@@ -60,7 +60,7 @@ Before you begin, ensure you have the following installed:
 - **PostgreSQL** 14 or later
 - **npm** or **yarn** or **pnpm**
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Clone the repository
 
@@ -143,7 +143,7 @@ After seeding, you can use these test accounts:
 | Admin | admin@example.com | Admin123! |
 | User | user@example.com | User123! |
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 ai-saas-platform/
@@ -175,7 +175,7 @@ ai-saas-platform/
 └── tsconfig.json
 ```
 
-## 🔐 API Routes
+##  API Routes
 
 ### Authentication
 
@@ -226,7 +226,7 @@ ai-saas-platform/
 | GET | `/api/admin/logs` | Get system logs |
 | GET | `/api/admin/health` | Get system health |
 
-## 🎨 Customization
+##  Customization
 
 ### Theming
 
@@ -252,7 +252,7 @@ The platform uses CSS variables for theming. Customize colors in `src/app/global
 2. Or add via database seed in `prisma/seed.ts`
 3. Implement custom logic in `src/lib/ai-service.ts`
 
-## 🧪 Testing
+##  Testing
 
 ```bash
 # Run unit tests
@@ -265,7 +265,7 @@ npm run test:e2e
 npm run test:coverage
 ```
 
-## 📦 Production Deployment
+##  Production Deployment
 
 ### Build for production
 
@@ -336,7 +336,7 @@ npx prisma migrate reset
 npx prisma migrate deploy
 ```
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -359,7 +359,7 @@ npm run type-check
 - Clear `.next` cache: `rm -rf .next`
 - Rebuild: `npm run build`
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -367,11 +367,11 @@ npm run type-check
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - [Next.js](https://nextjs.org/) - The React Framework
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
@@ -379,7 +379,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Prisma](https://prisma.io/) - Next-generation ORM
 - [OpenAI](https://openai.com/) - AI capabilities
 
-## 📞 Support
+##  Support
 
 - **Documentation**: [docs/](./docs/)
 - **Issues**: [GitHub Issues](https://github.com/your-username/ai-saas-platform/issues)
@@ -387,4 +387,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Built with ❤️ by [Your Name]
+
