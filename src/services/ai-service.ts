@@ -41,7 +41,28 @@ export interface AIProvider {
   summarize(text: string, options?: AIProviderConfig): Promise<AIResponse>;
   translate(text: string, targetLang: string, options?: AIProviderConfig): Promise<AIResponse>;
   chat(message: string, context?: string, options?: AIProviderConfig): Promise<AIResponse>;
+  chatWithHistory(params: ChatWithHistoryParams): Promise<ChatResponse>;
   analyze(data: string, question?: string, options?: AIProviderConfig): Promise<AIResponse>;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface ChatWithHistoryParams {
+  messages: ChatMessage[];
+  systemPrompt?: string;
+  options?: AIProviderConfig;
+}
+
+export interface ChatResponse {
+  content: string;
+  usage?: {
+    prompt: number;
+    completion: number;
+    total: number;
+  };
 }
 
 // ============================================
@@ -168,6 +189,27 @@ export { processData, Result };`,
     ];
 
     return this.createResponse(responses[Math.floor(Math.random() * responses.length)], 180);
+  }
+
+  async chatWithHistory(params: ChatWithHistoryParams): Promise<ChatResponse> {
+    await this.simulateDelay();
+
+    const lastMessage = params.messages[params.messages.length - 1];
+    const messagePreview = lastMessage?.content.slice(0, 30) || 'your question';
+
+    const responses = [
+      `Based on our conversation, I can provide insight on "${messagePreview}..."\n\nConsidering the context from our previous exchanges, here's my analysis:\n\n1. Your question builds naturally on what we discussed earlier.\n2. The key considerations here involve balancing multiple factors.\n3. I recommend a structured approach that accounts for all variables.\n\nWould you like me to go deeper into any particular aspect?`,
+      `Great follow-up question about "${messagePreview}..."\n\nDrawing from our conversation history:\n\nThe topic you're exploring connects directly to themes we've covered. Here are my thoughts:\n\n- First, consider the foundational elements we established\n- Next, apply those principles to your current question\n- Finally, evaluate the outcomes against your goals\n\nLet me know if you need clarification on any point!`,
+    ];
+
+    return {
+      content: responses[Math.floor(Math.random() * responses.length)],
+      usage: {
+        prompt: Math.floor(params.messages.length * 50),
+        completion: 150,
+        total: Math.floor(params.messages.length * 50) + 150,
+      },
+    };
   }
 
   async analyze(data: string, question?: string): Promise<AIResponse> {
@@ -322,6 +364,42 @@ class OpenAIProvider implements AIProvider {
     messages.push({ role: 'user', content: message });
 
     return this.callOpenAI(messages, options);
+  }
+
+  async chatWithHistory(params: ChatWithHistoryParams): Promise<ChatResponse> {
+    const startTime = Date.now();
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+
+    if (params.systemPrompt) {
+      messages.push({ role: 'system', content: params.systemPrompt });
+    }
+
+    for (const msg of params.messages) {
+      messages.push({
+        role: msg.role as 'system' | 'user' | 'assistant',
+        content: msg.content,
+      });
+    }
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: params.options?.model || config.ai.model,
+        messages,
+        max_tokens: params.options?.maxTokens || config.ai.maxTokens,
+        temperature: params.options?.temperature || 0.7,
+      });
+
+      return {
+        content: response.choices[0]?.message?.content || '',
+        usage: {
+          prompt: response.usage?.prompt_tokens || 0,
+          completion: response.usage?.completion_tokens || 0,
+          total: response.usage?.total_tokens || 0,
+        },
+      };
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'OpenAI API error');
+    }
   }
 
   async analyze(data: string, question?: string, options?: AIProviderConfig): Promise<AIResponse> {

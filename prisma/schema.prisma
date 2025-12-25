@@ -364,3 +364,64 @@ model SystemSetting {
   @@index([key])
   @@index([category])
 }
+
+// ============================================
+// CHAT HISTORY & CONVERSATIONS
+// ============================================
+
+model Conversation {
+  id          String    @id @default(cuid())
+  userId      String
+  toolId      String?
+  title       String
+  summary     String?
+  
+  // Metadata
+  messageCount Int      @default(0)
+  totalTokens  Int      @default(0)
+  
+  // Status
+  isArchived  Boolean   @default(false)
+  isPinned    Boolean   @default(false)
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastMessageAt DateTime @default(now())
+  
+  // Relations
+  messages    Message[]
+  
+  @@index([userId])
+  @@index([toolId])
+  @@index([createdAt])
+  @@index([lastMessageAt])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  role           MessageRole
+  content        String
+  
+  // Token usage for this message
+  tokenCount     Int         @default(0)
+  
+  // Metadata
+  metadata       Json?
+  
+  // Timestamps
+  createdAt      DateTime    @default(now())
+  
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}

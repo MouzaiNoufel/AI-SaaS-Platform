@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Wrench, 
-  History, 
+  History,
+  MessageSquare, 
   User, 
   Settings, 
   CreditCard,
@@ -22,6 +23,7 @@ import { useAuth } from '@/contexts/auth-context';
 const sidebarItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Tools', href: '/dashboard/tools', icon: Wrench },
+  { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'History', href: '/dashboard/history', icon: History },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
   { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
