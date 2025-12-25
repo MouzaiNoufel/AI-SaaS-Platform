@@ -60,6 +60,13 @@ export const config = {
     maxTokens: getEnvNumber('AI_MAX_TOKENS', 4096),
   },
 
+  // Stripe
+  stripe: {
+    secretKey: getEnvVar('STRIPE_SECRET_KEY'),
+    publishableKey: getEnvVar('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'),
+    webhookSecret: getEnvVar('STRIPE_WEBHOOK_SECRET'),
+  },
+
   // Rate Limiting
   rateLimit: {
     windowMs: getEnvNumber('RATE_LIMIT_WINDOW_MS', 60000),

@@ -29,7 +29,7 @@ enum UserStatus {
 model User {
   id                String      @id @default(cuid())
   email             String      @unique
-  password          String
+  password          String?
   name              String
   avatar            String?
   role              Role        @default(USER)
@@ -38,6 +38,9 @@ model User {
   emailVerifyToken  String?
   passwordResetToken String?
   passwordResetExpires DateTime?
+  
+  // Stripe
+  stripeCustomerId    String?   @unique
   
   // Usage tracking
   dailyAiRequests   Int         @default(0)
@@ -62,10 +65,13 @@ model User {
   auditLogs         AuditLog[]
   notifications     Notification[]
   contactMessages   ContactMessage[]
+  subscription      Subscription?
+  payments          Payment[]
 
   @@index([email])
   @@index([status])
   @@index([role])
+  @@index([stripeCustomerId])
 }
 
 model Session {
@@ -424,4 +430,127 @@ model Message {
 
   @@index([conversationId])
   @@index([createdAt])
+}
+
+// ============================================
+// SUBSCRIPTIONS & PAYMENTS
+// ============================================
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAUSED
+}
+
+enum PlanType {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  
+  // Stripe
+  stripeSubscriptionId  String?            @unique
+  stripePriceId         String?
+  
+  // Plan details
+  plan                  PlanType           @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+  
+  // Limits based on plan
+  dailyRequestLimit     Int                @default(50)
+  monthlyTokenLimit     Int                @default(100000)
+  tokensUsedThisMonth   Int                @default(0)
+  
+  // Billing period
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
+  
+  // Timestamps
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  
+  // Relations
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+model Payment {
+  id                  String        @id @default(cuid())
+  userId              String
+  
+  // Stripe
+  stripePaymentId     String?       @unique
+  stripeInvoiceId     String?
+  
+  // Amount
+  amount              Int           // in cents
+  currency            String        @default("usd")
+  
+  // Details
+  status              PaymentStatus @default(PENDING)
+  description         String?
+  
+  // Metadata
+  metadata            Json?
+  
+  // Timestamps
+  createdAt           DateTime      @default(now())
+  paidAt              DateTime?
+  
+  // Relations
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripePaymentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Plan {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            PlanType @unique
+  
+  // Pricing
+  monthlyPrice    Int      @default(0) // in cents
+  yearlyPrice     Int      @default(0) // in cents
+  stripePriceIdMonthly String?
+  stripePriceIdYearly  String?
+  
+  // Features
+  dailyRequests   Int      @default(50)
+  monthlyTokens   Int      @default(100000)
+  features        String[] @default([])
+  
+  // Display
+  description     String?
+  popular         Boolean  @default(false)
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
 }
