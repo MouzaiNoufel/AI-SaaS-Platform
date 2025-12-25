@@ -6,7 +6,7 @@ if (!config.stripe.secretKey && process.env.NODE_ENV === 'production') {
 }
 
 export const stripe = new Stripe(config.stripe.secretKey || 'sk_test_placeholder', {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-12-15.clover',
   typescript: true,
 });
 

@@ -200,19 +200,19 @@ export default function ToolPage() {
     return null;
   }
 
-  const getOutputContent = () => {
+  const getOutputContent = (): string => {
     if (!response?.output) return '';
     
     const output = response.output as Record<string, unknown>;
     
     // Handle different output structures
     if (typeof output === 'string') return output;
-    if (output.text) return output.text;
-    if (output.translation) return output.translation;
-    if (output.code) return output.code;
-    if (output.summary) return output.summary;
-    if (output.response) return output.response;
-    if (output.message) return output.message;
+    if (output.text) return String(output.text);
+    if (output.translation) return String(output.translation);
+    if (output.code) return String(output.code);
+    if (output.summary) return String(output.summary);
+    if (output.response) return String(output.response);
+    if (output.message) return String(output.message);
     if (output.result) return typeof output.result === 'string' ? output.result : JSON.stringify(output.result, null, 2);
     if (output.insights) return JSON.stringify(output.insights, null, 2);
     

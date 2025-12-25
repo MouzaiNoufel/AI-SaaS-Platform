@@ -1,4 +1,3 @@
-import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -7,7 +6,7 @@ import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import { config } from './config';
 
-export const authOptions: NextAuthOptions = {
+export const authOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
     GoogleProvider({
@@ -26,20 +25,20 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials: any) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: String(credentials.email) },
         });
 
         if (!user || !user.password) {
           throw new Error('Invalid email or password');
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
+        const isValid = await bcrypt.compare(String(credentials.password), user.password);
 
         if (!isValid) {
           throw new Error('Invalid email or password');
@@ -60,18 +59,22 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }: any) {
       if (account?.provider === 'google' || account?.provider === 'github') {
         // Check if user exists with this email
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email! },
-          include: { accounts: true },
         });
+
+        // Get linked accounts
+        const linkedAccounts = existingUser 
+          ? await prisma.account.findMany({ where: { userId: existingUser.id } })
+          : [];
 
         if (existingUser) {
           // Check if this provider is already linked
-          const linkedAccount = existingUser.accounts.find(
-            (acc) => acc.provider === account.provider
+          const linkedAccount = linkedAccounts.find(
+            (acc: { provider: string }) => acc.provider === account.provider
           );
 
           if (!linkedAccount) {
@@ -146,24 +149,24 @@ export const authOptions: NextAuthOptions = {
 
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account }: any) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role || 'USER';
+        token.role = user.role || 'USER';
       }
 
       if (account) {
-        token.accessToken = account.access_token;
+        token.accessToken = account.access_token || undefined;
         token.provider = account.provider;
       }
 
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).provider = token.provider;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.provider = token.provider;
       }
 
       return session;
@@ -174,7 +177,7 @@ export const authOptions: NextAuthOptions = {
     error: '/login',
   },
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: config.auth.jwtSecret,

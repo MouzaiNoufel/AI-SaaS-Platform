@@ -161,7 +161,7 @@ async function processUpload(
       data: {
         status: 'COMPLETED',
         extractedText: extracted?.text || null,
-        metadata: extracted?.metadata || null,
+        metadata: extracted?.metadata ? JSON.parse(JSON.stringify(extracted.metadata)) : undefined,
         processedAt: new Date(),
       },
     });

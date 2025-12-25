@@ -279,12 +279,30 @@ async function processAIRequest(
     },
   });
 
+  // Get or create a generic tool for external integrations
+  let tool = await prisma.aITool.findFirst({
+    where: { slug: 'external-integration' },
+  });
+
+  if (!tool) {
+    tool = await prisma.aITool.create({
+      data: {
+        name: 'External Integration',
+        slug: 'external-integration',
+        description: 'AI requests from external integrations',
+        category: 'TEXT_GENERATION',
+        icon: 'Plug',
+        status: 'ACTIVE',
+      },
+    });
+  }
+
   // Create AI request record
   const aiRequest = await prisma.aIRequest.create({
     data: {
       userId,
-      tool: source,
-      prompt: prompt.slice(0, 5000),
+      toolId: tool.id,
+      input: { prompt: prompt.slice(0, 5000), source },
       status: 'PENDING',
     },
   });
@@ -305,10 +323,10 @@ async function processAIRequest(
   await prisma.aIRequest.update({
     where: { id: aiRequest.id },
     data: {
-      response,
+      output: { text: response },
       status: 'COMPLETED',
       processingTime: Math.floor(Math.random() * 500 + 100),
-      tokensUsed: prompt.length + response.length,
+      tokenUsage: { prompt: prompt.length, completion: response.length, total: prompt.length + response.length },
       completedAt: new Date(),
     },
   });

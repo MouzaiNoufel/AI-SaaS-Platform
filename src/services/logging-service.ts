@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { AuditAction } from '@prisma/client';
+import { AuditAction, Prisma } from '@prisma/client';
 
 // ============================================
 // TYPES
@@ -10,7 +10,7 @@ interface AuditLogParams {
   action: AuditAction;
   entityType?: string;
   entityId?: string;
-  details?: Record<string, unknown>;
+  details?: Prisma.InputJsonValue;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -18,7 +18,7 @@ interface AuditLogParams {
 interface SystemLogParams {
   level: 'info' | 'warn' | 'error' | 'debug';
   message: string;
-  context?: Record<string, unknown>;
+  context?: Prisma.InputJsonValue;
   source?: string;
 }
 

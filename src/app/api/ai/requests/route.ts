@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { 
   requireAuth, 
   validateBody, 
@@ -168,7 +169,7 @@ export async function POST(req: NextRequest) {
       where: { id: aiRequest.id },
       data: {
         status: result.success ? 'COMPLETED' : 'FAILED',
-        output: result.output,
+        output: result.output as Prisma.InputJsonValue,
         error: result.error,
         processingTime: result.processingTime,
         tokenUsage: result.tokenUsage,
@@ -220,7 +221,12 @@ export async function POST(req: NextRequest) {
 
     return createdResponse({
       id: updatedRequest.id,
-      tool: updatedRequest.tool,
+      tool: {
+        id: tool.id,
+        name: tool.name,
+        slug: tool.slug,
+        icon: tool.icon,
+      },
       input: updatedRequest.input,
       output: updatedRequest.output,
       status: updatedRequest.status,

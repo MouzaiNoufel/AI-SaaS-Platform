@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
         id: true,
         provider: true,
         type: true,
-        createdAt: true,
       },
     });
 
@@ -52,15 +51,19 @@ export async function DELETE(request: NextRequest) {
     // Check if user has a password (can unlink) or other accounts
     const user = await prisma.user.findUnique({
       where: { id: auth.user.id },
-      include: { accounts: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get linked accounts
+    const userAccounts = await prisma.account.findMany({
+      where: { userId: auth.user.id },
+    });
+
     // Ensure user can still log in after unlinking
-    if (!user.password && user.accounts.length <= 1) {
+    if (!user.password && userAccounts.length <= 1) {
       return NextResponse.json(
         { error: 'Cannot unlink the only login method. Please set a password first.' },
         { status: 400 }
@@ -68,10 +71,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the account link
-    const where = accountId
-      ? { id: accountId, userId: auth.user.id }
-      : { provider_providerAccountId: { provider: provider!, providerAccountId: '' } };
-
     if (accountId) {
       await prisma.account.delete({
         where: { id: accountId },

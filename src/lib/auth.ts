@@ -1,7 +1,10 @@
 import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { cookies } from 'next/headers';
+import { NextRequest } from 'next/server';
 import { config } from './config';
+import { prisma } from './prisma';
 
 // ============================================
 // TYPES
@@ -157,4 +160,78 @@ export function getAccessTokenCookieOptions() {
 export function getRefreshTokenCookieOptions() {
   const expiresInSeconds = parseExpiresIn(config.jwt.refreshExpiresIn);
   return getAuthCookieOptions(expiresInSeconds);
+}
+
+// ============================================
+// AUTH VERIFICATION
+// ============================================
+
+export interface AuthResult {
+  success: boolean;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+    role: 'USER' | 'ADMIN';
+    avatar: string | null;
+    stripeCustomerId: string | null;
+  };
+  error?: string;
+}
+
+export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
+  try {
+    // Try to get token from cookies first
+    const cookieStore = await cookies();
+    let token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+    
+    // Fall back to Authorization header
+    if (!token) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+    
+    if (!token) {
+      return { success: false, error: 'No authentication token provided' };
+    }
+    
+    const payload = await verifyAccessToken(token);
+    if (!payload) {
+      return { success: false, error: 'Invalid or expired token' };
+    }
+    
+    // Get user from database
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatar: true,
+        stripeCustomerId: true,
+      },
+    });
+    
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role as 'USER' | 'ADMIN',
+        avatar: user.avatar,
+        stripeCustomerId: user.stripeCustomerId,
+      },
+    };
+  } catch (error) {
+    console.error('Auth verification error:', error);
+    return { success: false, error: 'Authentication failed' };
+  }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { config } from '@/lib/config';
+import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
   }
 
-  let event;
+  let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
-        const session = event.data.object;
+        const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const plan = session.metadata?.plan as 'STARTER' | 'PRO' | 'ENTERPRISE';
         const subscriptionId = session.subscription as string;
@@ -47,7 +48,8 @@ export async function POST(request: NextRequest) {
           const limits = planLimits[plan];
 
           // Get subscription details from Stripe
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId) as Stripe.Subscription;
+          const subData = subscription as unknown as { current_period_start: number; current_period_end: number };
 
           await prisma.subscription.upsert({
             where: { userId },
@@ -59,8 +61,8 @@ export async function POST(request: NextRequest) {
               status: 'ACTIVE',
               dailyRequestLimit: limits.daily,
               monthlyTokenLimit: limits.monthly,
-              currentPeriodStart: new Date(subscription.current_period_start * 1000),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              currentPeriodStart: new Date(subData.current_period_start * 1000),
+              currentPeriodEnd: new Date(subData.current_period_end * 1000),
             },
             update: {
               stripeSubscriptionId: subscriptionId,
@@ -69,8 +71,8 @@ export async function POST(request: NextRequest) {
               status: 'ACTIVE',
               dailyRequestLimit: limits.daily,
               monthlyTokenLimit: limits.monthly,
-              currentPeriodStart: new Date(subscription.current_period_start * 1000),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              currentPeriodStart: new Date(subData.current_period_start * 1000),
+              currentPeriodEnd: new Date(subData.current_period_end * 1000),
             },
           });
 
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object;
+        const subscription = event.data.object as Stripe.Subscription;
         const stripeSubscriptionId = subscription.id;
 
         const existingSub = await prisma.subscription.findUnique({
@@ -95,9 +97,9 @@ export async function POST(request: NextRequest) {
           await prisma.subscription.update({
             where: { stripeSubscriptionId },
             data: {
-              status: subscription.status.toUpperCase() as any,
-              currentPeriodStart: new Date(subscription.current_period_start * 1000),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              status: subscription.status.toUpperCase() as 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'TRIALING',
+              currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+              currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
             },
           });
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
+        const subscription = event.data.object as Stripe.Subscription;
         const stripeSubscriptionId = subscription.id;
 
         const existingSub = await prisma.subscription.findUnique({
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'invoice.paid': {
-        const invoice = event.data.object;
+        const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
         const user = await prisma.user.findFirst({
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
           await prisma.payment.create({
             data: {
               userId: user.id,
-              stripePaymentId: invoice.payment_intent as string,
+              stripePaymentId: (invoice as any).payment_intent as string || invoice.id,
               stripeInvoiceId: invoice.id,
               amount: invoice.amount_paid,
               currency: invoice.currency,
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'invoice.payment_failed': {
-        const invoice = event.data.object;
+        const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
 
         const user = await prisma.user.findFirst({
@@ -171,7 +173,7 @@ export async function POST(request: NextRequest) {
           await prisma.payment.create({
             data: {
               userId: user.id,
-              stripePaymentId: invoice.payment_intent as string,
+              stripePaymentId: (invoice as any).payment_intent as string || invoice.id,
               stripeInvoiceId: invoice.id,
               amount: invoice.amount_due,
               currency: invoice.currency,

@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
       return errorResponse('Invalid email or password', 401);
     }
 
+    // Check if user has a password (not OAuth-only user)
+    if (!user.password) {
+      return errorResponse('Please use social login for this account', 401);
+    }
+
     // Verify password
     const isValidPassword = await verifyPassword(password, user.password);
     if (!isValidPassword) {

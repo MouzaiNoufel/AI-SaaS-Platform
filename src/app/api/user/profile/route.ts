@@ -114,6 +114,11 @@ export async function PUT(req: NextRequest) {
       return errorResponse('User not found', 404);
     }
 
+    // Check if user has a password set
+    if (!user.password) {
+      return errorResponse('No password set for this account. Use social login or set a password first.', 400);
+    }
+
     // Verify current password
     const isValid = await verifyPassword(currentPassword, user.password);
     if (!isValid) {
