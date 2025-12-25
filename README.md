@@ -2,7 +2,7 @@
 
 A **complete, production-ready AI Software-as-a-Service (SaaS) web platform** built with Next.js 14, featuring a comprehensive set of AI-powered tools, user management, and admin dashboard.
 
-![Platform Preview](./docs/preview.png)
+
 
 ##  Features
 
@@ -320,7 +320,7 @@ docker build -t ai-saas-platform .
 docker run -p 3000:3000 ai-saas-platform
 ```
 
-## 📋 Database Commands
+##  Database Commands
 
 ```bash
 # View database in Prisma Studio
