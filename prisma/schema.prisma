@@ -70,6 +70,9 @@ model User {
   accounts          Account[]
   apiKeys           ApiKey[]
   webhooks          Webhook[]
+  ownedTeams        Team[]           @relation("TeamOwner")
+  teamMemberships   TeamMember[]
+  sentInvitations   TeamInvitation[] @relation("TeamInviter")
 
   @@index([email])
   @@index([status])
@@ -677,4 +680,93 @@ model Webhook {
 
   @@index([userId])
   @@index([isActive])
+}
+
+// ============================================
+// TEAMS & ORGANIZATIONS
+// ============================================
+
+model Team {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  description     String?
+  avatar          String?
+  
+  // Owner
+  ownerId         String
+  
+  // Settings
+  settings        Json?
+  
+  // Limits
+  maxMembers      Int       @default(5)
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  owner           User      @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members         TeamMember[]
+  invitations     TeamInvitation[]
+
+  @@index([ownerId])
+  @@index([slug])
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(MEMBER)
+  
+  // Timestamps
+  joinedAt  DateTime @default(now())
+  
+  // Relations
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model TeamInvitation {
+  id          String           @id @default(cuid())
+  teamId      String
+  email       String
+  role        TeamRole         @default(MEMBER)
+  token       String           @unique
+  status      InvitationStatus @default(PENDING)
+  
+  // Inviter
+  invitedById String
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  
+  // Relations
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy   User      @relation("TeamInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([email])
+  @@index([token])
 }
