@@ -33,6 +33,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { cn, getInitials } from '@/lib/utils';
+import { CommandPalette } from '@/components/ui/command-palette';
+import { NotificationCenter } from '@/components/ui/notification-center';
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
@@ -124,6 +126,12 @@ export function Navbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-2">
+          {/* Command Palette / Search */}
+          {isAuthenticated && <CommandPalette />}
+
+          {/* Notification Center */}
+          {isAuthenticated && <NotificationCenter />}
+
           {/* Theme Toggle */}
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
             <Button
