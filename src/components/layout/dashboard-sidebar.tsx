@@ -13,7 +13,8 @@ import {
   Bell,
   HelpCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Code2
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ const sidebarItems = [
   { name: 'AI Tools', href: '/dashboard/tools', icon: Wrench },
   { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'History', href: '/dashboard/history', icon: History },
+  { name: 'Developer', href: '/dashboard/developer', icon: Code2 },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
   { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },

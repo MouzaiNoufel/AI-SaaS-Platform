@@ -68,6 +68,8 @@ model User {
   subscription      Subscription?
   payments          Payment[]
   accounts          Account[]
+  apiKeys           ApiKey[]
+  webhooks          Webhook[]
 
   @@index([email])
   @@index([status])
@@ -575,4 +577,104 @@ model Plan {
   updatedAt       DateTime @updatedAt
 
   @@index([type])
+}
+
+// ============================================
+// API ACCESS
+// ============================================
+
+model ApiKey {
+  id            String    @id @default(cuid())
+  userId        String
+  
+  name          String
+  key           String    @unique
+  keyPrefix     String    // First 8 chars for display (sk_live_xxxx)
+  hashedKey     String    // Secure hash of the full key
+  
+  // Permissions
+  permissions   String[]  @default(["read", "write"])
+  allowedIps    String[]  @default([])
+  
+  // Rate limiting
+  rateLimit     Int       @default(100) // requests per minute
+  dailyLimit    Int       @default(10000)
+  
+  // Usage tracking
+  totalRequests Int       @default(0)
+  lastUsedAt    DateTime?
+  
+  // Status
+  isActive      Boolean   @default(true)
+  expiresAt     DateTime?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiLogs       ApiLog[]
+
+  @@index([userId])
+  @@index([key])
+  @@index([keyPrefix])
+}
+
+model ApiLog {
+  id            String   @id @default(cuid())
+  apiKeyId      String
+  
+  // Request details
+  endpoint      String
+  method        String
+  statusCode    Int
+  responseTime  Int      // milliseconds
+  
+  // Usage
+  tokensUsed    Int      @default(0)
+  
+  // Metadata
+  ipAddress     String?
+  userAgent     String?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  apiKey        ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([createdAt])
+  @@index([endpoint])
+}
+
+model Webhook {
+  id            String    @id @default(cuid())
+  userId        String
+  
+  name          String
+  url           String
+  secret        String
+  
+  // Events to trigger
+  events        String[]  @default([])
+  
+  // Status
+  isActive      Boolean   @default(true)
+  
+  // Stats
+  totalDeliveries Int     @default(0)
+  successRate    Float    @default(100)
+  lastDeliveryAt DateTime?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
 }
