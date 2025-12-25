@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Code2,
   Users,
-  Upload
+  Upload,
+  Plug
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ const sidebarItems = [
   { name: 'History', href: '/dashboard/history', icon: History },
   { name: 'Uploads', href: '/dashboard/uploads', icon: Upload },
   { name: 'Teams', href: '/dashboard/teams', icon: Users },
+  { name: 'Integrations', href: '/dashboard/integrations', icon: Plug },
   { name: 'Developer', href: '/dashboard/developer', icon: Code2 },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
   { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },

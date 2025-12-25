@@ -74,6 +74,7 @@ model User {
   teamMemberships   TeamMember[]
   sentInvitations   TeamInvitation[] @relation("TeamInviter")
   uploads           Upload[]
+  integrations      Integration[]
 
   @@index([email])
   @@index([status])
@@ -830,5 +831,66 @@ model Upload {
   @@index([status])
   @@index([type])
   @@index([createdAt])
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+enum IntegrationType {
+  SLACK
+  DISCORD
+  CHROME
+  ZAPIER
+  CUSTOM
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  ERROR
+}
+
+model Integration {
+  id            String            @id @default(cuid())
+  userId        String
+  
+  // Integration info
+  type          IntegrationType
+  name          String
+  status        IntegrationStatus @default(PENDING)
+  
+  // OAuth tokens (encrypted in production)
+  accessToken   String?           @db.Text
+  refreshToken  String?           @db.Text
+  tokenExpires  DateTime?
+  
+  // Configuration
+  settings      Json?
+  
+  // Webhook URL for incoming data
+  webhookUrl    String?           @unique
+  webhookSecret String?
+  
+  // Usage tracking
+  lastUsed      DateTime?
+  usageCount    Int               @default(0)
+  
+  // Error tracking
+  lastError     String?
+  errorCount    Int               @default(0)
+  
+  // Timestamps
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  
+  // Relations
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
 }
 
