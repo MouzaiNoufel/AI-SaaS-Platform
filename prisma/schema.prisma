@@ -73,6 +73,7 @@ model User {
   ownedTeams        Team[]           @relation("TeamOwner")
   teamMemberships   TeamMember[]
   sentInvitations   TeamInvitation[] @relation("TeamInviter")
+  uploads           Upload[]
 
   @@index([email])
   @@index([status])
@@ -770,3 +771,64 @@ model TeamInvitation {
   @@index([email])
   @@index([token])
 }
+
+// ============================================
+// FILE UPLOADS AND PROCESSING
+// ============================================
+
+enum FileStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FileType {
+  PDF
+  IMAGE
+  DOCUMENT
+  SPREADSHEET
+  TEXT
+  OTHER
+}
+
+model Upload {
+  id            String       @id @default(cuid())
+  userId        String
+  
+  // File info
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  type          FileType
+  
+  // Storage
+  path          String
+  url           String?
+  
+  // Processing status
+  status        FileStatus   @default(PENDING)
+  processingError String?
+  
+  // Extracted content
+  extractedText String?      @db.Text
+  metadata      Json?
+  
+  // AI Analysis results
+  aiAnalysis    Json?
+  
+  // Timestamps
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  processedAt   DateTime?
+  
+  // Relations
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+

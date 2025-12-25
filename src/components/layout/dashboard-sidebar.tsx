@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Code2,
-  Users
+  Users,
+  Upload
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const sidebarItems = [
   { name: 'AI Tools', href: '/dashboard/tools', icon: Wrench },
   { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'History', href: '/dashboard/history', icon: History },
+  { name: 'Uploads', href: '/dashboard/uploads', icon: Upload },
   { name: 'Teams', href: '/dashboard/teams', icon: Users },
   { name: 'Developer', href: '/dashboard/developer', icon: Code2 },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
