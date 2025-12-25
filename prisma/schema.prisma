@@ -1,0 +1,366 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+  PENDING_VERIFICATION
+}
+
+model User {
+  id                String      @id @default(cuid())
+  email             String      @unique
+  password          String
+  name              String
+  avatar            String?
+  role              Role        @default(USER)
+  status            UserStatus  @default(PENDING_VERIFICATION)
+  emailVerified     Boolean     @default(false)
+  emailVerifyToken  String?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  
+  // Usage tracking
+  dailyAiRequests   Int         @default(0)
+  totalAiRequests   Int         @default(0)
+  lastRequestDate   DateTime?
+  dailyLimit        Int         @default(50)
+  
+  // Profile
+  bio               String?
+  company           String?
+  location          String?
+  website           String?
+  
+  // Timestamps
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  lastLoginAt       DateTime?
+  
+  // Relations
+  aiRequests        AIRequest[]
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  contactMessages   ContactMessage[]
+
+  @@index([email])
+  @@index([status])
+  @@index([role])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ============================================
+// AI TOOLS
+// ============================================
+
+enum ToolCategory {
+  TEXT_GENERATION
+  IMAGE_GENERATION
+  CODE_ASSISTANT
+  DATA_ANALYSIS
+  TRANSLATION
+  SUMMARIZATION
+  CHATBOT
+  OTHER
+}
+
+enum ToolStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  DEPRECATED
+}
+
+model AITool {
+  id              String       @id @default(cuid())
+  name            String       @unique
+  slug            String       @unique
+  description     String
+  shortDescription String?
+  icon            String?
+  category        ToolCategory
+  status          ToolStatus   @default(ACTIVE)
+  
+  // Configuration
+  inputSchema     Json?        // JSON schema for input validation
+  outputSchema    Json?        // Expected output format
+  defaultParams   Json?        // Default parameters
+  maxTokens       Int          @default(2048)
+  
+  // Pricing/Limits
+  creditCost      Int          @default(1)
+  rateLimit       Int          @default(10) // requests per minute
+  
+  // Metadata
+  version         String       @default("1.0.0")
+  documentation   String?
+  examples        Json?        // Example inputs/outputs
+  tags            String[]     @default([])
+  
+  // Stats
+  totalUsage      Int          @default(0)
+  avgResponseTime Float        @default(0)
+  successRate     Float        @default(100)
+  
+  // Timestamps
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Relations
+  aiRequests      AIRequest[]
+
+  @@index([slug])
+  @@index([category])
+  @@index([status])
+}
+
+// ============================================
+// AI REQUESTS
+// ============================================
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model AIRequest {
+  id              String        @id @default(cuid())
+  userId          String
+  toolId          String
+  
+  // Request data
+  input           Json
+  parameters      Json?
+  
+  // Response data
+  output          Json?
+  error           String?
+  
+  // Status tracking
+  status          RequestStatus @default(PENDING)
+  processingTime  Int?          // milliseconds
+  tokenUsage      Json?         // { prompt: number, completion: number, total: number }
+  
+  // Metadata
+  ipAddress       String?
+  userAgent       String?
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  completedAt     DateTime?
+  
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool            AITool        @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([toolId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// SYSTEM & AUDIT
+// ============================================
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  REGISTER
+  PASSWORD_RESET
+  PROFILE_UPDATE
+  AI_REQUEST
+  TOOL_CREATE
+  TOOL_UPDATE
+  TOOL_DELETE
+  USER_BAN
+  USER_UNBAN
+  ROLE_CHANGE
+  SETTINGS_CHANGE
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  action      AuditAction
+  entityType  String?
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+  
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model SystemLog {
+  id          String   @id @default(cuid())
+  level       String   // info, warn, error, debug
+  message     String
+  context     Json?
+  source      String?  // api, ai-service, auth, etc.
+  createdAt   DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
+}
+
+model SystemHealth {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  cpuUsage        Float?
+  memoryUsage     Float?
+  diskUsage       Float?
+  activeUsers     Int      @default(0)
+  requestsPerMin  Int      @default(0)
+  avgResponseTime Float?
+  errorRate       Float    @default(0)
+  aiServiceStatus String   @default("healthy")
+  dbStatus        String   @default("healthy")
+
+  @@index([timestamp])
+}
+
+// ============================================
+// NOTIFICATIONS & CONTACT
+// ============================================
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  AI_COMPLETE
+  SYSTEM
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+  
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  userId    String?
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    ContactStatus @default(NEW)
+  response  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model DailyAnalytics {
+  id              String   @id @default(cuid())
+  date            DateTime @unique @db.Date
+  
+  // User metrics
+  newUsers        Int      @default(0)
+  activeUsers     Int      @default(0)
+  totalLogins     Int      @default(0)
+  
+  // AI metrics
+  totalRequests   Int      @default(0)
+  successfulReqs  Int      @default(0)
+  failedRequests  Int      @default(0)
+  avgResponseTime Float    @default(0)
+  totalTokens     Int      @default(0)
+  
+  // Tool usage breakdown
+  toolUsage       Json?    // { toolId: count }
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([date])
+}
+
+// ============================================
+// SETTINGS
+// ============================================
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
+}
