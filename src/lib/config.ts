@@ -67,6 +67,25 @@ export const config = {
     webhookSecret: getEnvVar('STRIPE_WEBHOOK_SECRET'),
   },
 
+  // OAuth Providers
+  oauth: {
+    google: {
+      clientId: getEnvVar('GOOGLE_CLIENT_ID'),
+      clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET'),
+    },
+    github: {
+      clientId: getEnvVar('GITHUB_CLIENT_ID'),
+      clientSecret: getEnvVar('GITHUB_CLIENT_SECRET'),
+    },
+  },
+
+  // Auth
+  auth: {
+    jwtSecret: getEnvVar('JWT_SECRET', 'default-secret-change-in-production'),
+    nextAuthUrl: getEnvVar('NEXTAUTH_URL', 'http://localhost:3000'),
+    nextAuthSecret: getEnvVar('NEXTAUTH_SECRET', 'nextauth-secret-change-in-production'),
+  },
+
   // Rate Limiting
   rateLimit: {
     windowMs: getEnvNumber('RATE_LIMIT_WINDOW_MS', 60000),
